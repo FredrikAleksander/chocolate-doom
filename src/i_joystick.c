@@ -112,34 +112,6 @@ static boolean IsValidAxis(int axis)
 
 static int DeviceIndex(void)
 {
-    SDL_JoystickGUID guid, dev_guid;
-    int i;
-
-    guid = SDL_JoystickGetGUIDFromString(joystick_guid);
-
-    // GUID identifies a class of device rather than a specific device.
-    // Check if joystick_index has the expected GUID, as this can act
-    // as a tie-breaker in case there are multiple identical devices.
-    if (joystick_index >= 0 && joystick_index < SDL_NumJoysticks())
-    {
-        dev_guid = SDL_JoystickGetDeviceGUID(joystick_index);
-        if (!memcmp(&guid, &dev_guid, sizeof(SDL_JoystickGUID)))
-        {
-            return joystick_index;
-        }
-    }
-
-    // Check all devices to look for one with the expected GUID.
-    for (i = 0; i < SDL_NumJoysticks(); ++i)
-    {
-        dev_guid = SDL_JoystickGetDeviceGUID(i);
-        if (!memcmp(&guid, &dev_guid, sizeof(SDL_JoystickGUID)))
-        {
-            printf("I_InitJoystick: Joystick moved to index %d.\n", i);
-            return i;
-        }
-    }
-
     // No joystick found with the expected GUID.
     return -1;
 }
@@ -197,7 +169,7 @@ void I_InitJoystick(void)
 
     // Initialized okay!
 
-    printf("I_InitJoystick: %s\n", SDL_JoystickName(joystick));
+    printf("I_InitJoystick: %s\n", SDL_JoystickName(SDL_JoystickIndex(joystick)));
 
     I_AtExit(I_ShutdownJoystick, true);
 }

@@ -604,7 +604,7 @@ static const known_joystick_t *GetJoystickType(int index)
     int i;
 
     joystick = all_joysticks[index];
-    name = SDL_JoystickName(joystick);
+    name = SDL_JoystickName(SDL_JoystickIndex(joystick));
     axes = SDL_JoystickNumAxes(joystick);
     buttons = SDL_JoystickNumButtons(joystick);
     hats = SDL_JoystickNumHats(joystick);
@@ -724,31 +724,10 @@ static void UnInitJoystick(void)
 // updates it as appropriate.
 static void UpdateJoystickIndex(void)
 {
-    SDL_JoystickGUID guid, dev_guid;
-    int i;
-
-    guid = SDL_JoystickGetGUIDFromString(joystick_guid);
-
     // Is joystick_index already correct?
     if (joystick_index >= 0 && joystick_index < SDL_NumJoysticks())
     {
-        dev_guid = SDL_JoystickGetDeviceGUID(joystick_index);
-        if (!memcmp(&guid, &dev_guid, sizeof(SDL_JoystickGUID)))
-        {
-            return;
-        }
-    }
-
-    // If index is not correct, look for the first device with the
-    // expected GUID. It may have moved to a different index.
-    for (i = 0; i < SDL_NumJoysticks(); ++i)
-    {
-        dev_guid = SDL_JoystickGetDeviceGUID(i);
-        if (!memcmp(&guid, &dev_guid, sizeof(SDL_JoystickGUID)))
-        {
-            joystick_index = i;
-            return;
-        }
+        return;
     }
 
     // Not found; it's possible the device is disconnected. Do not
@@ -759,7 +738,6 @@ static void UpdateJoystickIndex(void)
 // Set the label showing the name of the currently selected joystick
 static void SetJoystickButtonLabel(void)
 {
-    SDL_JoystickGUID guid, dev_guid;
     const char *name;
 
     if (!usejoystick || !strcmp(joystick_guid, ""))
@@ -773,12 +751,7 @@ static void SetJoystickButtonLabel(void)
         // Use the device name if the GUID and index match.
         if (joystick_index >= 0 && joystick_index < SDL_NumJoysticks())
         {
-            guid = SDL_JoystickGetGUIDFromString(joystick_guid);
-            dev_guid = SDL_JoystickGetDeviceGUID(joystick_index);
-            if (!memcmp(&guid, &dev_guid, sizeof(SDL_JoystickGUID)))
-            {
-                name = SDL_JoystickNameForIndex(joystick_index);
-            }
+            name = SDL_JoystickName(joystick_index);
         }
     }
 
@@ -857,24 +830,10 @@ static void CalibrateXAxis(void)
 
 // Given the SDL_JoystickID instance ID from a button event, set the
 // joystick_guid and joystick_index config variables.
-static boolean SetJoystickGUID(SDL_JoystickID joy_id)
+static boolean SetJoystickGUID(Uint8 index)
 {
-    SDL_JoystickGUID guid;
-    int i;
-
-    for (i = 0; i < all_joysticks_len; ++i)
-    {
-        if (SDL_JoystickInstanceID(all_joysticks[i]) == joy_id)
-        {
-            guid = SDL_JoystickGetGUID(all_joysticks[i]);
-            joystick_guid = malloc(33);
-            SDL_JoystickGetGUIDString(guid, joystick_guid, 33);
-            joystick_index = i;
-            return true;
-        }
-    }
-
-    return false;
+    joystick_index = index;
+	return true;
 }
 
 static int CalibrationEventCallback(SDL_Event *event, void *user_data)

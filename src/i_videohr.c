@@ -30,7 +30,6 @@
 #define HR_SCREENWIDTH 640
 #define HR_SCREENHEIGHT 480
 
-static SDL_Window *hr_screen = NULL;
 static SDL_Surface *hr_surface = NULL;
 static const char *window_title = "";
 
@@ -47,11 +46,8 @@ boolean I_SetVideoModeHR(void)
 
     // Create screen surface at the native desktop pixel depth (bpp=0),
     // as we cannot trust true 8-bit to reliably work nowadays.
-    hr_screen = SDL_CreateWindow(window_title, x, y,
-        HR_SCREENWIDTH, HR_SCREENHEIGHT,
-        0);
-
-    if (hr_screen == NULL)
+	hr_surface = SDL_SetVideoMode(HR_SCREENWIDTH, HR_SCREENHEIGHT, 8, SDL_HWSURFACE);
+    if (hr_surface == NULL)
     {
         SDL_QuitSubSystem(SDL_INIT_VIDEO);
         return false;
@@ -71,11 +67,9 @@ void I_SetWindowTitleHR(const char *title)
 
 void I_UnsetVideoModeHR(void)
 {
-    if (hr_screen != NULL)
+    if (hr_surface != NULL)
     {
         SDL_QuitSubSystem(SDL_INIT_VIDEO);
-        hr_screen = NULL;
-        SDL_FreeSurface(hr_surface);
         hr_surface = NULL;
     }
 }
@@ -89,7 +83,6 @@ void I_ClearScreenHR(void)
 
 void I_SlamBlockHR(int x, int y, int w, int h, const byte *src)
 {
-    SDL_Rect blit_rect;
     const byte *srcptrs[4];
     byte srcbits[4];
     byte *dest;
@@ -146,13 +139,7 @@ void I_SlamBlockHR(int x, int y, int w, int h, const byte *src)
     SDL_UnlockSurface(hr_surface);
 
     // Update the region we drew.
-    blit_rect.x = x;
-    blit_rect.y = y;
-    blit_rect.w = w;
-    blit_rect.h = h;
-    SDL_BlitSurface(hr_surface, &blit_rect,
-                    SDL_GetWindowSurface(hr_screen), &blit_rect);
-    SDL_UpdateWindowSurfaceRects(hr_screen, &blit_rect, 1);
+	SDL_Flip(hr_surface);
 }
 
 void I_SlamHR(const byte *buffer)
@@ -167,7 +154,6 @@ void I_InitPaletteHR(void)
 
 void I_SetPaletteHR(const byte *palette)
 {
-    SDL_Rect screen_rect = {0, 0, HR_SCREENWIDTH, HR_SCREENHEIGHT};
     SDL_Color sdlpal[16];
     int i;
 
@@ -179,10 +165,8 @@ void I_SetPaletteHR(const byte *palette)
     }
 
     // After setting colors, update the screen.
-    SDL_SetPaletteColors(hr_surface->format->palette, sdlpal, 0, 16);
-    SDL_BlitSurface(hr_surface, &screen_rect,
-                    SDL_GetWindowSurface(hr_screen), &screen_rect);
-    SDL_UpdateWindowSurfaceRects(hr_screen, &screen_rect, 1);
+    SDL_SetColors(hr_surface, sdlpal, 0, 16);
+	SDL_Flip(hr_surface);
 }
 
 void I_FadeToPaletteHR(const byte *palette)
@@ -211,7 +195,7 @@ void I_FadeToPaletteHR(const byte *palette)
         }
 
         I_SetPaletteHR(tmppal);
-        SDL_UpdateWindowSurface(hr_screen);
+		SDL_Flip(hr_surface);
 
         // Sleep a bit
 

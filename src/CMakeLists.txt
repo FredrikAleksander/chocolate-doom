@@ -29,7 +29,7 @@ set(DEDSERV_FILES
 add_executable("${PROGRAM_PREFIX}server" WIN32 ${COMMON_SOURCE_FILES} ${DEDSERV_FILES})
 target_include_directories("${PROGRAM_PREFIX}server"
                            PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/../")
-target_link_libraries("${PROGRAM_PREFIX}server" SDL2::SDL2main SDL2::net)
+target_link_libraries("${PROGRAM_PREFIX}server" ${SDL_LIBRARY} ${SDLNET_LIBRARY})
 
 # Source files used by the game binaries (chocolate-doom, etc.)
 
@@ -118,7 +118,7 @@ set(DEHACKED_SOURCE_FILES
 set(SOURCE_FILES ${COMMON_SOURCE_FILES} ${GAME_SOURCE_FILES})
 set(SOURCE_FILES_WITH_DEH ${SOURCE_FILES} ${DEHACKED_SOURCE_FILES})
 
-set(EXTRA_LIBS SDL2::SDL2main SDL2::SDL2 SDL2::mixer SDL2::net textscreen pcsound opl)
+set(EXTRA_LIBS ${SDL_LIBRARY} ${SDLMIXER_LIBRARY} ${SDLNET_LIBRARY} textscreen pcsound opl)
 if(SAMPLERATE_FOUND)
     list(APPEND EXTRA_LIBS samplerate::samplerate)
 endif()
@@ -207,7 +207,7 @@ endif()
 
 target_include_directories("${PROGRAM_PREFIX}setup"
                            PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/../")
-target_link_libraries("${PROGRAM_PREFIX}setup" SDL2::SDL2main SDL2::SDL2 SDL2::mixer SDL2::net setup textscreen)
+					   target_link_libraries("${PROGRAM_PREFIX}setup" ${SDL_LIBRARY} ${SDLMIXER_LIBRARY} ${SDLNET_LIBRARY} setup textscreen)
 
 if(MSVC)
     set_target_properties("${PROGRAM_PREFIX}setup" PROPERTIES
@@ -217,9 +217,9 @@ endif()
 add_executable(midiread midifile.c z_native.c i_system.c m_argv.c m_misc.c)
 target_compile_definitions(midiread PRIVATE "-DTEST")
 target_include_directories(midiread PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/../")
-target_link_libraries(midiread SDL2::SDL2main SDL2::SDL2)
+target_link_libraries(midiread ${SDL_LIBRARY})
 
 add_executable(mus2mid mus2mid.c memio.c z_native.c i_system.c m_argv.c m_misc.c)
 target_compile_definitions(mus2mid PRIVATE "-DSTANDALONE")
 target_include_directories(mus2mid PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/../")
-target_link_libraries(mus2mid SDL2::SDL2main SDL2::SDL2)
+target_link_libraries(mus2mid ${SDL_LIBRARY})

@@ -319,8 +319,8 @@ void I_Error (const char *error, ...)
     // therefore be unable to otherwise see the message).
     if (exit_gui_popup && !I_ConsoleStdout())
     {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR,
-                                 PACKAGE_STRING, msgbuf, NULL);
+        //SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR,
+         //                        PACKAGE_STRING, msgbuf, NULL);
     }
 
     // abort();

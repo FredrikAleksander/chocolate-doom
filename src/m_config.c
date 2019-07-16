@@ -25,7 +25,7 @@
 #include <errno.h>
 #include <assert.h>
 
-#include "SDL_filesystem.h"
+//#include "SDL_filesystem.h"
 
 #include "config.h"
 
@@ -2177,21 +2177,6 @@ float M_GetFloatVariable(const char *name)
 
 static char *GetDefaultConfigDir(void)
 {
-#if !defined(_WIN32) || defined(_WIN32_WCE)
-
-    // Configuration settings are stored in an OS-appropriate path
-    // determined by SDL.  On typical Unix systems, this might be
-    // ~/.local/share/chocolate-doom.  On Windows, we behave like
-    // Vanilla Doom and save in the current directory.
-
-    char *result;
-
-    result = SDL_GetPrefPath("", PACKAGE_TARNAME);
-    if (result != NULL)
-    {
-        return result;
-    }
-#endif /* #ifndef _WIN32 */
     return M_StringDuplicate("");
 }
 
@@ -2246,7 +2231,7 @@ void M_SetMusicPackDir(void)
         return;
     }
 
-    prefdir = SDL_GetPrefPath("", PACKAGE_TARNAME);
+    prefdir = M_StringDuplicate("");
     music_pack_path = M_StringJoin(prefdir, "music-packs", NULL);
 
     M_MakeDirectory(prefdir);
@@ -2341,10 +2326,7 @@ char *M_GetAutoloadDir(const char *iwadname)
 
     if (autoload_path == NULL || strlen(autoload_path) == 0)
     {
-        char *prefdir;
-        prefdir = SDL_GetPrefPath("", PACKAGE_TARNAME);
-        autoload_path = M_StringJoin(prefdir, "autoload", NULL);
-        free(prefdir);
+        autoload_path = M_StringJoin("", "autoload", NULL);
     }
 
     M_MakeDirectory(autoload_path);

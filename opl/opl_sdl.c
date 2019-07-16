@@ -165,8 +165,7 @@ static void FillBuffer(uint8_t *buffer, unsigned int nsamples)
     // OPL output is generated into temporary buffer and then mixed
     // (to avoid overflows etc.)
     OPL3_GenerateStream(&opl_chip, (Bit16s *) mix_buffer, nsamples);
-    SDL_MixAudioFormat(buffer, mix_buffer, AUDIO_S16SYS, nsamples * 4,
-                       SDL_MIX_MAXVOLUME);
+	SDL_MixAudio(buffer, mix_buffer, nsamples * 4, SDL_MIX_MAXVOLUME);
 }
 
 // Callback function to fill a new sound buffer:

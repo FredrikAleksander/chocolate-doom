@@ -51,10 +51,8 @@ typedef struct
 
 #define BLINK_PERIOD 250
 
-SDL_Window *TXT_SDLWindow;
-static SDL_Surface *screenbuffer;
+SDL_Surface *TXT_SDLscreen;
 static unsigned char *screendata;
-static SDL_Renderer *renderer;
 
 // Current input mode.
 static txt_input_mode_t input_mode = TXT_INPUT_NORMAL;
@@ -164,7 +162,6 @@ static const txt_font_t *FontForName(const char *name)
 
 static void ChooseFont(void)
 {
-    SDL_DisplayMode desktop_info;
     char *env;
 
     // Allow normal selection to be overridden from an environment variable:
@@ -178,46 +175,7 @@ static void ChooseFont(void)
             return;
         }
     }
-
-    // Get desktop resolution.
-    // If in doubt and we can't get a list, always prefer to
-    // fall back to the normal font:
-    if (SDL_GetCurrentDisplayMode(0, &desktop_info))
-    {
-        font = &highdpi_font;
-        return;
-    }
-
-    // On tiny low-res screens (eg. palmtops) use the small font.
-    // If the screen resolution is at least 1920x1080, this is
-    // a modern high-resolution display, and we can use the
-    // large font.
-
-    if (desktop_info.w < 640 || desktop_info.h < 480)
-    {
-        font = &small_font;
-    }
-#ifdef _WIN32
-    // On Windows we can use the system DPI settings to make a
-    // more educated guess about whether to use the large font.
-
-    else if (Win32_UseLargeFont())
-    {
-        font = &large_font;
-    }
-#endif
-    // TODO: Detect high DPI on Linux by inquiring about Gtk+ scale
-    // settings. This looks like it should just be a case of shelling
-    // out to invoke the 'gsettings' command, eg.
-    //   gsettings get org.gnome.desktop.interface text-scaling-factor
-    // and using large_font if the result is >= 2.
-    else
-    {
-        // highdpi_font usually means normal_font (the normal resolution
-        // version), but actually means "set the HIGHDPI flag and try
-        // to use large_font if we initialize successfully".
-        font = &highdpi_font;
-    }
+    font = &highdpi_font;
 }
 
 //
@@ -240,58 +198,21 @@ int TXT_Init(void)
     screen_image_w = TXT_SCREEN_W * font->w;
     screen_image_h = TXT_SCREEN_H * font->h;
 
-    // If highdpi_font is selected, try to initialize high dpi rendering.
-    if (font == &highdpi_font)
-    {
-        flags |= SDL_WINDOW_ALLOW_HIGHDPI;
-    }
+    TXT_SDLscreen =
+        SDL_SetVideoMode(screen_image_w, screen_image_h, 8, flags);
 
-    TXT_SDLWindow =
-        SDL_CreateWindow("", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-                         screen_image_w, screen_image_h, flags);
-
-    if (TXT_SDLWindow == NULL)
+    if (TXT_SDLscreen == NULL)
         return 0;
 
-    renderer = SDL_CreateRenderer(TXT_SDLWindow, -1, 0);
-
-    // Special handling for OS X retina display. If we successfully set the
-    // highdpi flag, check the output size for the screen renderer. If we get
-    // the 2x doubled size we expect from a retina display, use the large font
-    // for drawing the screen.
-    if ((SDL_GetWindowFlags(TXT_SDLWindow) & SDL_WINDOW_ALLOW_HIGHDPI) != 0)
-    {
-        int render_w, render_h;
-
-        if (SDL_GetRendererOutputSize(renderer, &render_w, &render_h) == 0
-         && render_w >= TXT_SCREEN_W * large_font.w
-         && render_h >= TXT_SCREEN_H * large_font.h)
-        {
-            font = &large_font;
-            // Note that we deliberately do not update screen_image_{w,h}
-            // since these are the dimensions of textscreen image in screen
-            // coordinates, not pixels.
-        }
-    }
-
-    // Failed to initialize for high dpi (retina display) rendering? If so
-    // then use the normal resolution font instead.
     if (font == &highdpi_font)
     {
         font = &normal_font;
     }
 
-    // Instead, we draw everything into an intermediate 8-bit surface
-    // the same dimensions as the screen. SDL then takes care of all the
-    // 8->32 bit (or whatever depth) color conversions for us.
-    screenbuffer = SDL_CreateRGBSurface(0,
-                                        TXT_SCREEN_W * font->w,
-                                        TXT_SCREEN_H * font->h,
-                                        8, 0, 0, 0, 0);
 
-    SDL_LockSurface(screenbuffer);
-    SDL_SetPaletteColors(screenbuffer->format->palette, ega_colors, 0, 16);
-    SDL_UnlockSurface(screenbuffer);
+    SDL_LockSurface(TXT_SDLscreen);
+    SDL_SetColors(TXT_SDLscreen, (SDL_Color*)ega_colors, 0, 16);
+    SDL_UnlockSurface(TXT_SDLscreen);
 
     screendata = malloc(TXT_SCREEN_W * TXT_SCREEN_H * 2);
     memset(screendata, 0, TXT_SCREEN_W * TXT_SCREEN_H * 2);
@@ -303,8 +224,8 @@ void TXT_Shutdown(void)
 {
     free(screendata);
     screendata = NULL;
-    SDL_FreeSurface(screenbuffer);
-    screenbuffer = NULL;
+    SDL_FreeSurface(TXT_SDLscreen);
+    TXT_SDLscreen = NULL;
     SDL_QuitSubSystem(SDL_INIT_VIDEO);
 }
 
@@ -312,9 +233,9 @@ void TXT_SetColor(txt_color_t color, int r, int g, int b)
 {
     SDL_Color c = {r, g, b, 0xff};
 
-    SDL_LockSurface(screenbuffer);
-    SDL_SetPaletteColors(screenbuffer->format->palette, &c, color, 1);
-    SDL_UnlockSurface(screenbuffer);
+    SDL_LockSurface(TXT_SDLscreen);
+    SDL_SetColors(TXT_SDLscreen, &c, color, 1);
+    SDL_UnlockSurface(TXT_SDLscreen);
 }
 
 unsigned char *TXT_GetScreenData(void)
@@ -353,8 +274,8 @@ static inline void UpdateCharacter(int x, int y)
     p = &font->data[(character * font->w * font->h) / 8];
     bit = 0;
 
-    s = ((unsigned char *) screenbuffer->pixels)
-      + (y * font->h * screenbuffer->pitch)
+    s = ((unsigned char *) TXT_SDLscreen->pixels)
+      + (y * font->h * TXT_SDLscreen->pitch)
       + (x * font->w);
 
     for (y1=0; y1<font->h; ++y1)
@@ -380,7 +301,7 @@ static inline void UpdateCharacter(int x, int y)
             }
         }
 
-        s += screenbuffer->pitch;
+        s += TXT_SDLscreen->pitch;
     }
 }
 
@@ -400,26 +321,13 @@ static int LimitToRange(int val, int min, int max)
     }
 }
 
-static void GetDestRect(SDL_Rect *rect)
-{
-    int w, h;
-
-    SDL_GetRendererOutputSize(renderer, &w, &h);
-    rect->x = (w - screenbuffer->w) / 2;
-    rect->y = (h - screenbuffer->h) / 2;
-    rect->w = screenbuffer->w;
-    rect->h = screenbuffer->h;
-}
-
 void TXT_UpdateScreenArea(int x, int y, int w, int h)
 {
-    SDL_Texture *screentx;
-    SDL_Rect rect;
     int x1, y1;
     int x_end;
     int y_end;
 
-    SDL_LockSurface(screenbuffer);
+    SDL_LockSurface(TXT_SDLscreen);
 
     x_end = LimitToRange(x + w, 0, TXT_SCREEN_W);
     y_end = LimitToRange(y + h, 0, TXT_SCREEN_H);
@@ -434,20 +342,8 @@ void TXT_UpdateScreenArea(int x, int y, int w, int h)
         }
     }
 
-    SDL_UnlockSurface(screenbuffer);
-
-    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
-
-    // TODO: This is currently creating a new texture every time we render
-    // the screen; find a more efficient way to do it.
-    screentx = SDL_CreateTextureFromSurface(renderer, screenbuffer);
-
-    SDL_RenderClear(renderer);
-    GetDestRect(&rect);
-    SDL_RenderCopy(renderer, screentx, NULL, &rect);
-    SDL_RenderPresent(renderer);
-
-    SDL_DestroyTexture(screentx);
+    SDL_UnlockSurface(TXT_SDLscreen);
+	SDL_Flip(TXT_SDLscreen);
 }
 
 void TXT_UpdateScreen(void)
@@ -466,7 +362,8 @@ void TXT_GetMousePosition(int *x, int *y)
     // We are working here in screen coordinates and not pixels, since this is
     // what SDL_GetWindowSize() returns; we must calculate and subtract the
     // origin position since we center the image within the window.
-    SDL_GetWindowSize(TXT_SDLWindow, &window_w, &window_h);
+	window_w = TXT_SDLscreen->w;
+	window_h = TXT_SDLscreen->h;
     origin_x = (window_w - screen_image_w) / 2;
     origin_y = (window_h - screen_image_h) / 2;
     *x = ((*x - origin_x) * TXT_SCREEN_W) / screen_image_w;
@@ -497,26 +394,212 @@ void TXT_GetMousePosition(int *x, int *y)
 // XXX: duplicate from doomtype.h
 #define arrlen(array) (sizeof(array) / sizeof(*array))
 
-static int TranslateScancode(SDL_Scancode scancode)
+static int TranslateScancode(SDLKey sym, Uint8 scancode)
 {
-    switch (scancode)
-    {
-        case SDL_SCANCODE_LCTRL:
-        case SDL_SCANCODE_RCTRL:
-            return KEY_RCTRL;
-
-        case SDL_SCANCODE_LSHIFT:
-        case SDL_SCANCODE_RSHIFT:
-            return KEY_RSHIFT;
-
-        case SDL_SCANCODE_LALT:
-            return KEY_LALT;
-
-        case SDL_SCANCODE_RALT:
-            return KEY_RALT;
-
+	switch(sym)
+	{
+		case SDLK_LCTRL:
+		case SDLK_RCTRL:
+			return KEY_RCTRL;
+		case SDLK_LSHIFT:
+		case SDLK_RSHIFT:
+			return KEY_RSHIFT;
+		case SDLK_LALT:
+			return KEY_LALT;
+		case SDLK_RALT:
+			return KEY_RALT;
+		case SDLK_LEFT:
+			return KEY_LEFTARROW;
+		case SDLK_RIGHT:
+			return KEY_RIGHTARROW;
+		case SDLK_UP:
+			return KEY_UPARROW;
+		case SDLK_DOWN:
+			return KEY_DOWNARROW;
+		case SDLK_ESCAPE:
+			return KEY_ESCAPE;
+		case SDLK_RETURN:
+			return KEY_ENTER;
+		case SDLK_TAB:
+			return KEY_TAB;
+		case SDLK_F1:
+			return KEY_F1;
+		case SDLK_F2:
+			return KEY_F2;
+		case SDLK_F3:
+			return KEY_F3;
+		case SDLK_F4:
+			return KEY_F4;
+		case SDLK_F5:
+			return KEY_F5;
+		case SDLK_F6:
+			return KEY_F6;
+		case SDLK_F7:
+			return KEY_F7;
+		case SDLK_F8:
+			return KEY_F8;
+		case SDLK_F9:
+			return KEY_F9;
+		case SDLK_F10:
+			return KEY_F10;
+		case SDLK_F11:
+			return KEY_F11;
+		case SDLK_F12:
+			return KEY_F12;
+		case SDLK_BACKSPACE:
+			return KEY_BACKSPACE;
+		case SDLK_SPACE:
+			return ' ';
+		case SDLK_PAUSE:
+			return KEY_PAUSE;
+		case SDLK_EQUALS:
+			return KEY_EQUALS;
+		case SDLK_MINUS:
+			return KEY_MINUS;
+		case SDLK_CAPSLOCK:
+			return KEY_CAPSLOCK;
+		case SDLK_NUMLOCK:
+			return KEY_NUMLOCK;
+		case SDLK_SCROLLOCK:
+			return KEY_SCRLCK;
+		case SDLK_PRINT:
+			return KEY_PRTSCR;
+		case SDLK_HOME:
+			return KEY_HOME;
+		case SDLK_END:
+			return KEY_END;
+		case SDLK_PAGEUP:
+			return KEY_PGUP;
+		case SDLK_PAGEDOWN:
+			return KEY_PGDN;
+		case SDLK_INSERT:
+			return KEY_INS;
+		case SDLK_DELETE:
+			return KEY_DEL;
+		case SDLK_KP0:
+			return KEYP_0;
+		case SDLK_KP1:
+			return KEYP_1;
+		case SDLK_KP2:
+			return KEYP_2;
+		case SDLK_KP3:
+			return KEYP_3;
+		case SDLK_KP4:
+			return KEYP_4;
+		case SDLK_KP5:
+			return KEYP_5;
+		case SDLK_KP6:
+			return KEYP_6;
+		case SDLK_KP7:
+			return KEYP_7;
+		case SDLK_KP8:
+			return KEYP_8;
+		case SDLK_KP9:
+			return KEYP_9;
+		case SDLK_KP_DIVIDE:
+			return KEYP_DIVIDE;
+		case SDLK_KP_PLUS:
+			return KEYP_PLUS;
+		case SDLK_KP_MINUS:
+			return KEYP_MINUS;
+		case SDLK_KP_MULTIPLY:
+			return KEYP_MULTIPLY;
+		case SDLK_KP_PERIOD:
+			return KEYP_MULTIPLY;
+		case SDLK_KP_EQUALS:
+			return KEYP_EQUALS;
+		case SDLK_KP_ENTER:
+			return KEYP_ENTER;
+		case SDLK_a:
+			return 'a';
+		case SDLK_b:
+			return 'b';
+		case SDLK_c:
+			return 'c';
+		case SDLK_d:
+			return 'd';
+		case SDLK_e:
+			return 'e';
+		case SDLK_f:
+			return 'f';
+		case SDLK_g:
+			return 'g';
+		case SDLK_h:
+			return 'h';
+		case SDLK_i:
+			return 'i';
+		case SDLK_j:
+			return 'j';
+		case SDLK_k:
+			return 'k';
+		case SDLK_l:
+			return 'l';
+		case SDLK_m:
+			return 'm';
+		case SDLK_n:
+			return 'n';
+		case SDLK_o:
+			return 'o';
+		case SDLK_p:
+			return 'p';
+		case SDLK_q:
+			return 'q';
+		case SDLK_r:
+			return 'r';
+		case SDLK_s:
+			return 's';
+		case SDLK_t:
+			return 't';
+		case SDLK_u:
+			return 'u';
+		case SDLK_v:
+			return 'v';
+		case SDLK_w:
+			return 'w';
+		case SDLK_x:
+			return 'x';
+		case SDLK_y:
+			return 'y';
+		case SDLK_z:
+			return 'z';
+		case SDLK_0:
+			return '0';
+		case SDLK_1:
+			return '1';
+		case SDLK_2:
+			return '2';
+		case SDLK_3:
+			return '3';
+		case SDLK_4:
+			return '4';
+		case SDLK_5:
+			return '5';
+		case SDLK_6:
+			return '6';
+		case SDLK_7:
+			return '7';
+		case SDLK_8:
+			return '8';
+		case SDLK_9:
+			return '9';
+		case SDLK_LEFTBRACKET:
+			return '[';
+		case SDLK_RIGHTBRACKET:
+			return ']';
+		case SDLK_BACKSLASH:
+			return '\\';
+		case SDLK_SLASH:
+			return '/';
+		case SDLK_QUOTE:
+			return '\'';
+		case SDLK_PERIOD:
+			return '.';
+		case SDLK_COMMA:
+			return ',';
+		case SDLK_BACKQUOTE:
+			return '`';
         default:
-            if (scancode < arrlen(scancode_translate_table))
+            if (scancode >= 0 && scancode < arrlen(scancode_translate_table))
             {
                 return scancode_translate_table[scancode];
             }
@@ -525,16 +608,17 @@ static int TranslateScancode(SDL_Scancode scancode)
                 return 0;
             }
     }
+	return 0;
 }
 
-static int TranslateKeysym(const SDL_Keysym *sym)
+static int TranslateKeysym(const SDL_keysym *sym)
 {
     int translated;
 
     // We cheat here and make use of TranslateScancode. The range of keys
     // associated with printable characters is pretty contiguous, so if it's
     // inside that range we want the localized version of the key instead.
-    translated = TranslateScancode(sym->scancode);
+    translated = TranslateScancode(sym->sym, sym->scancode);
 
     if (translated >= 0x20 && translated < 0x7f)
     {
@@ -566,7 +650,7 @@ static int SDLButtonToTXTButton(int button)
 }
 
 // Convert an SDL wheel motion to a textscreen button index.
-
+/*
 static int SDLWheelToTXTButton(const SDL_MouseWheelEvent *wheel)
 {
     if (wheel->y <= 0)
@@ -578,6 +662,7 @@ static int SDLWheelToTXTButton(const SDL_MouseWheelEvent *wheel)
         return TXT_MOUSE_SCROLLUP;
     }
 }
+*/
 
 static int MouseHasMoved(void)
 {
@@ -625,29 +710,12 @@ signed int TXT_GetChar(void)
                 }
                 break;
 
-            case SDL_MOUSEWHEEL:
-                return SDLWheelToTXTButton(&ev.wheel);
+            /*case SDL_MOUSEWHEEL:
+                return SDLWheelToTXTButton(&ev.wheel);*/
 
             case SDL_KEYDOWN:
-                switch (input_mode)
-                {
-                    case TXT_INPUT_RAW:
-                        return TranslateScancode(ev.key.keysym.scancode);
-                    case TXT_INPUT_NORMAL:
-                        return TranslateKeysym(&ev.key.keysym);
-                    case TXT_INPUT_TEXT:
-                        // We ignore key inputs in this mode, except for a
-                        // few special cases needed during text input:
-                        if (ev.key.keysym.sym == SDLK_ESCAPE
-                         || ev.key.keysym.sym == SDLK_BACKSPACE
-                         || ev.key.keysym.sym == SDLK_RETURN)
-                        {
-                            return TranslateKeysym(&ev.key.keysym);
-                        }
-                        break;
-                }
-                break;
-
+				return TranslateKeysym(&ev.key.keysym);
+/*
             case SDL_TEXTINPUT:
                 if (input_mode == TXT_INPUT_TEXT)
                 {
@@ -659,6 +727,7 @@ signed int TXT_GetChar(void)
                     return TXT_UNICODE_TO_KEY(result);
                 }
                 break;
+				*/
 
             case SDL_QUIT:
                 // Quit = escape
@@ -680,7 +749,7 @@ signed int TXT_GetChar(void)
 
 int TXT_GetModifierState(txt_modifier_t mod)
 {
-    SDL_Keymod state;
+    SDLMod state;
 
     state = SDL_GetModState();
 
@@ -756,12 +825,15 @@ static const char *NameForKey(int key)
     {
         if (scancode_translate_table[i] == key)
         {
+			/*
             result = SDL_GetKeyName(SDL_GetKeyFromScancode(i));
             if (TXT_UTF8_Strlen(result) > 6 || !PrintableName(result))
             {
                 break;
             }
+			result = NULL;
             return result;
+			*/
         }
     }
 
@@ -887,6 +959,7 @@ void TXT_Sleep(int timeout)
 
 void TXT_SetInputMode(txt_input_mode_t mode)
 {
+	/*
     if (mode == TXT_INPUT_TEXT && !SDL_IsTextInputActive())
     {
         SDL_StartTextInput();
@@ -895,13 +968,14 @@ void TXT_SetInputMode(txt_input_mode_t mode)
     {
         SDL_StopTextInput();
     }
+	*/
 
     input_mode = mode;
 }
 
 void TXT_SetWindowTitle(const char *title)
 {
-    SDL_SetWindowTitle(TXT_SDLWindow, title);
+	SDL_WM_SetCaption(title, NULL);
 }
 
 void TXT_SDL_SetEventCallback(TxtSDLEventCallbackFunc callback, void *user_data)

@@ -18,7 +18,6 @@
 
 
 #include "SDL.h"
-#include "SDL_keycode.h"
 
 #include "doomkeys.h"
 #include "doomtype.h"
@@ -101,26 +100,212 @@ float mouse_acceleration = 2.0;
 int mouse_threshold = 10;
 
 // Translates the SDL key to a value of the type found in doomkeys.h
-static int TranslateKey(SDL_Keysym *sym)
+static int TranslateKey(SDL_keysym *sym)
 {
     int scancode = sym->scancode;
 
-    switch (scancode)
-    {
-        case SDL_SCANCODE_LCTRL:
-        case SDL_SCANCODE_RCTRL:
-            return KEY_RCTRL;
-
-        case SDL_SCANCODE_LSHIFT:
-        case SDL_SCANCODE_RSHIFT:
-            return KEY_RSHIFT;
-
-        case SDL_SCANCODE_LALT:
-            return KEY_LALT;
-
-        case SDL_SCANCODE_RALT:
-            return KEY_RALT;
-
+	switch(sym->sym)
+	{
+		case SDLK_LCTRL:
+		case SDLK_RCTRL:
+			return KEY_RCTRL;
+		case SDLK_LSHIFT:
+		case SDLK_RSHIFT:
+			return KEY_RSHIFT;
+		case SDLK_LALT:
+			return KEY_LALT;
+		case SDLK_RALT:
+			return KEY_RALT;
+		case SDLK_LEFT:
+			return KEY_LEFTARROW;
+		case SDLK_RIGHT:
+			return KEY_RIGHTARROW;
+		case SDLK_UP:
+			return KEY_UPARROW;
+		case SDLK_DOWN:
+			return KEY_DOWNARROW;
+		case SDLK_ESCAPE:
+			return KEY_ESCAPE;
+		case SDLK_RETURN:
+			return KEY_ENTER;
+		case SDLK_TAB:
+			return KEY_TAB;
+		case SDLK_F1:
+			return KEY_F1;
+		case SDLK_F2:
+			return KEY_F2;
+		case SDLK_F3:
+			return KEY_F3;
+		case SDLK_F4:
+			return KEY_F4;
+		case SDLK_F5:
+			return KEY_F5;
+		case SDLK_F6:
+			return KEY_F6;
+		case SDLK_F7:
+			return KEY_F7;
+		case SDLK_F8:
+			return KEY_F8;
+		case SDLK_F9:
+			return KEY_F9;
+		case SDLK_F10:
+			return KEY_F10;
+		case SDLK_F11:
+			return KEY_F11;
+		case SDLK_F12:
+			return KEY_F12;
+		case SDLK_BACKSPACE:
+			return KEY_BACKSPACE;
+		case SDLK_SPACE:
+			return ' ';
+		case SDLK_PAUSE:
+			return KEY_PAUSE;
+		case SDLK_EQUALS:
+			return KEY_EQUALS;
+		case SDLK_MINUS:
+			return KEY_MINUS;
+		case SDLK_CAPSLOCK:
+			return KEY_CAPSLOCK;
+		case SDLK_NUMLOCK:
+			return KEY_NUMLOCK;
+		case SDLK_SCROLLOCK:
+			return KEY_SCRLCK;
+		case SDLK_PRINT:
+			return KEY_PRTSCR;
+		case SDLK_HOME:
+			return KEY_HOME;
+		case SDLK_END:
+			return KEY_END;
+		case SDLK_PAGEUP:
+			return KEY_PGUP;
+		case SDLK_PAGEDOWN:
+			return KEY_PGDN;
+		case SDLK_INSERT:
+			return KEY_INS;
+		case SDLK_DELETE:
+			return KEY_DEL;
+		case SDLK_KP0:
+			return KEYP_0;
+		case SDLK_KP1:
+			return KEYP_1;
+		case SDLK_KP2:
+			return KEYP_2;
+		case SDLK_KP3:
+			return KEYP_3;
+		case SDLK_KP4:
+			return KEYP_4;
+		case SDLK_KP5:
+			return KEYP_5;
+		case SDLK_KP6:
+			return KEYP_6;
+		case SDLK_KP7:
+			return KEYP_7;
+		case SDLK_KP8:
+			return KEYP_8;
+		case SDLK_KP9:
+			return KEYP_9;
+		case SDLK_KP_DIVIDE:
+			return KEYP_DIVIDE;
+		case SDLK_KP_PLUS:
+			return KEYP_PLUS;
+		case SDLK_KP_MINUS:
+			return KEYP_MINUS;
+		case SDLK_KP_MULTIPLY:
+			return KEYP_MULTIPLY;
+		case SDLK_KP_PERIOD:
+			return KEYP_MULTIPLY;
+		case SDLK_KP_EQUALS:
+			return KEYP_EQUALS;
+		case SDLK_KP_ENTER:
+			return KEYP_ENTER;
+		case SDLK_a:
+			return 'a';
+		case SDLK_b:
+			return 'b';
+		case SDLK_c:
+			return 'c';
+		case SDLK_d:
+			return 'd';
+		case SDLK_e:
+			return 'e';
+		case SDLK_f:
+			return 'f';
+		case SDLK_g:
+			return 'g';
+		case SDLK_h:
+			return 'h';
+		case SDLK_i:
+			return 'i';
+		case SDLK_j:
+			return 'j';
+		case SDLK_k:
+			return 'k';
+		case SDLK_l:
+			return 'l';
+		case SDLK_m:
+			return 'm';
+		case SDLK_n:
+			return 'n';
+		case SDLK_o:
+			return 'o';
+		case SDLK_p:
+			return 'p';
+		case SDLK_q:
+			return 'q';
+		case SDLK_r:
+			return 'r';
+		case SDLK_s:
+			return 's';
+		case SDLK_t:
+			return 't';
+		case SDLK_u:
+			return 'u';
+		case SDLK_v:
+			return 'v';
+		case SDLK_w:
+			return 'w';
+		case SDLK_x:
+			return 'x';
+		case SDLK_y:
+			return 'y';
+		case SDLK_z:
+			return 'z';
+		case SDLK_0:
+			return '0';
+		case SDLK_1:
+			return '1';
+		case SDLK_2:
+			return '2';
+		case SDLK_3:
+			return '3';
+		case SDLK_4:
+			return '4';
+		case SDLK_5:
+			return '5';
+		case SDLK_6:
+			return '6';
+		case SDLK_7:
+			return '7';
+		case SDLK_8:
+			return '8';
+		case SDLK_9:
+			return '9';
+		case SDLK_LEFTBRACKET:
+			return '[';
+		case SDLK_RIGHTBRACKET:
+			return ']';
+		case SDLK_BACKSLASH:
+			return '\\';
+		case SDLK_SLASH:
+			return '/';
+		case SDLK_QUOTE:
+			return '\'';
+		case SDLK_PERIOD:
+			return '.';
+		case SDLK_COMMA:
+			return ',';
+		case SDLK_BACKQUOTE:
+			return '`';
         default:
             if (scancode >= 0 && scancode < arrlen(scancode_translate_table))
             {
@@ -136,7 +321,7 @@ static int TranslateKey(SDL_Keysym *sym)
 // Get the localized version of the key press. This takes into account the
 // keyboard layout, but does not apply any changes due to modifiers, (eg.
 // shift-, alt-, etc.)
-static int GetLocalizedKey(SDL_Keysym *sym)
+static int GetLocalizedKey(SDL_keysym *sym)
 {
     // When using Vanilla mapping, we just base everything off the scancode
     // and always pretend the user is using a US layout keyboard.
@@ -158,7 +343,7 @@ static int GetLocalizedKey(SDL_Keysym *sym)
 }
 
 // Get the equivalent ASCII (Unicode?) character for a keypress.
-static int GetTypedChar(SDL_Keysym *sym)
+static int GetTypedChar(SDL_keysym *sym)
 {
     // We only return typed characters when entering text, after
     // I_StartTextInput() has been called. Otherwise we return nothing.
@@ -186,7 +371,7 @@ static int GetTypedChar(SDL_Keysym *sym)
     }
     else
     {
-        SDL_Event next_event;
+        //SDL_Event next_event;
 
         // Special cases, where we always return a fixed value.
         switch (sym->sym)
@@ -197,46 +382,7 @@ static int GetTypedChar(SDL_Keysym *sym)
                 break;
         }
 
-        // The following is a gross hack, but I don't see an easier way
-        // of doing this within the SDL2 API (in SDL1 it was easier).
-        // We want to get the fully transformed input character associated
-        // with this keypress - correct keyboard layout, appropriately
-        // transformed by any modifier keys, etc. So peek ahead in the SDL
-        // event queue and see if the key press is immediately followed by
-        // an SDL_TEXTINPUT event. If it is, it's reasonable to assume the
-        // key press and the text input are connected. Technically the SDL
-        // API does not guarantee anything of the sort, but in practice this
-        // is what happens and I've verified it through manual inspect of
-        // the SDL source code.
-        //
-        // In an ideal world we'd split out ev_keydown into a separate
-        // ev_textinput event, as SDL2 has done. But this doesn't work
-        // (I experimented with the idea), because lots of Doom's code is
-        // based around different responders "eating" events to stop them
-        // being passed on to another responder. If code is listening for
-        // a text input, it cannot block the corresponding keydown events
-        // which can affect other responders.
-        //
-        // So we're stuck with this as a rather fragile alternative.
-
-        if (SDL_PeepEvents(&next_event, 1, SDL_PEEKEVENT,
-                           SDL_FIRSTEVENT, SDL_LASTEVENT) == 1
-         && next_event.type == SDL_TEXTINPUT)
-        {
-            // If an SDL_TEXTINPUT event is found, we always assume it
-            // matches the key press. The input text must be a single
-            // ASCII character - if it isn't, it's possible the input
-            // char is a Unicode value instead; better to send a null
-            // character than the unshifted key.
-            if (strlen(next_event.text.text) == 1
-             && (next_event.text.text[0] & 0x80) == 0)
-            {
-                return next_event.text.text[0];
-            }
-        }
-
-        // Failed to find anything :/
-        return 0;
+		return sym->unicode;
     }
 }
 
@@ -290,8 +436,7 @@ void I_StartTextInput(int x1, int y1, int x2, int y2)
 
     if (!vanilla_keyboard_mapping)
     {
-        // SDL2-TODO: SDL_SetTextInputRect(...);
-        SDL_StartTextInput();
+		SDL_EnableUNICODE(SDL_TRUE);
     }
 }
 
@@ -301,7 +446,7 @@ void I_StopTextInput(void)
 
     if (!vanilla_keyboard_mapping)
     {
-        SDL_StopTextInput();
+		SDL_EnableUNICODE(SDL_FALSE);
     }
 }
 
@@ -357,6 +502,7 @@ static void UpdateMouseButtonState(unsigned int button, boolean on)
     D_PostEvent(&event);
 }
 
+/*
 static void MapMouseWheelToButtons(SDL_MouseWheelEvent *wheel)
 {
     // SDL2 distinguishes button events from mouse wheel events.
@@ -388,6 +534,7 @@ static void MapMouseWheelToButtons(SDL_MouseWheelEvent *wheel)
     up.data2 = up.data3 = 0;
     D_PostEvent(&up);
 }
+*/
 
 void I_HandleMouseEvent(SDL_Event *sdlevent)
 {
@@ -401,9 +548,11 @@ void I_HandleMouseEvent(SDL_Event *sdlevent)
             UpdateMouseButtonState(sdlevent->button.button, false);
             break;
 
+/*
         case SDL_MOUSEWHEEL:
             MapMouseWheelToButtons(&(sdlevent->wheel));
             break;
+*/
 
         default:
             break;
