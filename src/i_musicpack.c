@@ -713,7 +713,7 @@ static char *GetFullPath(const char *musicdir, const char *path)
 // GetFullPath().
 static char *ExpandFileExtension(const char *musicdir, const char *filename)
 {
-    static const char *extns[] = {".flac", ".ogg", ".mp3"};
+    static const char *extns[] = {".flac", ".ogg", ".mp3", ".it", ".xm", ".s3m" };
     char *replaced, *result;
     int i;
 
